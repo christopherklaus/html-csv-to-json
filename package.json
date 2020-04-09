@@ -9,6 +9,8 @@
   },
   "dependencies": {
     "core-js": "^3.6.4",
+    "html-table-to-json": "^1.0.0",
+    "lodash": "^4.17.15",
     "vue": "^2.6.11"
   },
   "devDependencies": {
