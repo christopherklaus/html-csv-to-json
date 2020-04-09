@@ -2,15 +2,18 @@
   <div id="app" class="center">
     <div class="import-data">
       <div class="import-from-csv">
-        <div class="import-from-url">
+        <!-- <div class="import-from-url">
           <input type="text" v-model="csvURL" placeholder="https://example.com/file.csv">
-          <button @click="importCSVFromUrl">Import File from URL</button>
-        </div>
+          <button @click="importCSVFromURL">Import File from URL</button>
+        </div> -->
         <div class="import-from-file">
-
+          <h2>Import from File</h2>
+          <input type="file" @change="uploadFile" accept=".csv">
+          <button @click="convertCSV">Convert to JSON</button>
         </div>
       </div>
       <div class="import-from-html">
+        <h2>Import from HTML</h2>
         <textarea v-model="tableData">
         </textarea>
         <div class="button-wrapper">
@@ -37,7 +40,9 @@
 <script>
 
 import HTMLFromTable from 'html-table-to-json'
+import PapaParse from 'papaparse'
 import { mapKeys } from 'lodash'
+import { get } from 'axios'
 
 export default {
   name: 'App',
@@ -80,11 +85,29 @@ export default {
     triggerInputChangeFor(element, event) {
       console.log({ element, event })
     },
-    importCSVFromUrl() {
+    importCSVFromURL() {
+      get(this.csvURL, {
+          headers: {
+            'Content-Type': 'text/csv'
+          }
+        }).then((response) => {
+        this.csvData = response.data
+        this.convertCSV()
+      })
+    },
+    uploadFile(event) {
+      const files = event.target.files || event.dataTransfer.files;
+      if (!files.length)
+        return
 
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        this.csvData = event.target.result
+      }
+      reader.readAsText(files[0])
     },
     convertCSV() {
-
+      this.jsonData = PapaParse.parse(this.csvData, { header: true }).data
     },
     convertHTML() {
       this.jsonData = (HTMLFromTable.parse(this.tableData) || {}).results[0]
@@ -99,10 +122,6 @@ export default {
 <style>
 #app {
   font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
   margin-top: 60px;
 }
 .center {
@@ -116,6 +135,11 @@ textarea {
   height: 300px;
   display: block;
   width: 100%
+}
+
+ul {
+  list-style-type: none;
+  padding: 0
 }
 
 pre {
