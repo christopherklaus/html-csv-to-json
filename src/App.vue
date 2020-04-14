@@ -71,12 +71,24 @@
           <h5>Normalize Data</h5>
           <h6>Expected output structure</h6>
           <div class="result-data-wrapper d-flex justify-content-between align-items-center">
-            <div class="badge badge-pill badge-success">occured_on (date)</div>
-            <div class="badge badge-pill badge-success">tested (integer)</div>
-            <div class="badge badge-pill badge-success">confirmed (integer)</div>
-            <div class="badge badge-pill badge-success">recovered (integer)</div>
-            <div class="badge badge-pill badge-success">deaths (integer)</div>
-            <div class="badge badge-pill badge-success">location</div>
+            <div
+              class="badge badge-pill badge-secondary"
+              :class="{ 'badge-success': jsonDataFields.includes('occured_on') }">occured_on (date)</div>
+            <div
+              class="badge badge-pill badge-secondary"
+              :class="{ 'badge-success': jsonDataFields.includes('tested') }">tested (integer)</div>
+            <div
+              class="badge badge-pill badge-secondary"
+              :class="{ 'badge-success': jsonDataFields.includes('confirmed') }">confirmed (integer)</div>
+            <div
+              class="badge badge-pill badge-secondary"
+              :class="{ 'badge-success': jsonDataFields.includes('recovered') }">recovered (integer)</div>
+            <div
+              class="badge badge-pill badge-secondary"
+              :class="{ 'badge-success': jsonDataFields.includes('deaths') }">deaths (integer)</div>
+            <div
+              class="badge badge-pill badge-secondary"
+              :class="{ 'badge-success': jsonDataFields.includes('location') }">location</div>
           </div>
           <h6 class="mt-4 mb-0">Your uploaded data</h6>
           <p class="text-muted">Only one entry is shown</p>
