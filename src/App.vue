@@ -85,7 +85,7 @@
               :class="{ 'badge-success': jsonDataFields.includes('recovered') }">recovered (integer)</div>
             <div
               class="badge badge-pill badge-secondary"
-              :class="{ 'badge-success': jsonDataFields.includes('deaths') }">deaths (integer)</div>
+              :class="{ 'badge-success': jsonDataFields.includes('deceased') }">deceased (integer)</div>
             <div
               class="badge badge-pill badge-secondary"
               :class="{ 'badge-success': jsonDataFields.includes('location') }">location</div>
@@ -103,13 +103,23 @@
               <div class="input-group-prepend">
                 <div class="input-group-text">Field Name</div>
               </div>
-              <input type="text" placeholder="location" class="form-control">
+              <input
+                v-model="newFieldName"
+                type="text"
+                placeholder="location"
+                class="form-control">
               <div class="input-group-append">
                 <div class="input-group-text">Value</div>
               </div>
-              <input type="text" placeholder="Berlin" class="form-control">
+              <input
+                v-model="newFieldValue"
+                type="text"
+                placeholder="Berlin"
+                class="form-control">
               <div class="input-group-append">
-                <button class="btn btn-success">Create</button>
+                <button
+                  class="btn btn-success"
+                  @click="addField">Create</button>
               </div>
             </div>
           </div>
@@ -171,13 +181,15 @@
 
 import HTMLFromTable from 'html-table-to-json'
 import PapaParse from 'papaparse'
-import { mapKeys, omit } from 'lodash'
+import { mapKeys, omit, assignIn } from 'lodash'
 import { get } from 'axios'
 
 export default {
   name: 'App',
   data() {
     return {
+      newFieldName: '',
+      newFieldValue: '',
       showJSON: false,
       rename: false,
       addStaticField: false,
@@ -200,7 +212,6 @@ export default {
   methods: {
     importTableFromURL() {
       get(`http://a05b81e417a6b11eaa621060268a248d-1111261182.eu-west-1.elb.amazonaws.com/table?url=${this.tableURL}`).then((response) => {
-        console.log(response)
         this.tableData = response.data.tags[0]
       })
     },
@@ -223,6 +234,14 @@ export default {
     },
     convertHTML() {
       this.jsonData = (HTMLFromTable.parse(this.tableData) || {}).results[0]
+    },
+    addField() {
+      const newElement = {}
+      newElement[this.newFieldName] = this.newFieldValue
+      this.jsonData = this.jsonData.map(element => assignIn(element, newElement))
+
+      this.newFieldValue = ''
+      this.newFieldName = ''
     },
     renameField(fieldName, newFieldName) {
       this.jsonData = this.jsonData.map(element => mapKeys(element, (value, key) => key === fieldName ? newFieldName : key))
