@@ -26,7 +26,7 @@
               v-if="selectedInput === 'csv'">
               <div class="import-from-file">
                 <h6>Import from File from CSV</h6>
-                <div class="input-group mb-3">
+                <div class="input-group">
                   <div class="custom-file">
                     <input
                       type="file"
@@ -67,36 +67,61 @@
             </div>
           </div>
         </div>
-        <div class="card mb-3 mt-5" v-if="jsonData.length">
+        <div class="card my-4">
+          <h5>Upload new data for location</h5>
+          <div class="input-group mt-2">
+            <div class="input-group-prepend">
+              <label class="input-group-text">Available Locations</label>
+            </div>
+            <select
+              class="custom-select"
+              v-model="selectedLocation">
+              <option selected disabled>Choose Location to upload data for ...</option>
+              <option value="create">Create New Location</option>
+              <option
+                v-for="location in availableLocations"
+                :value="location.id"
+                :key="location.id">{{ location.province }} in {{ location.country }}</option>
+            </select>
+          </div>
+          <div
+            class="create-location-wrapper"
+            v-if="selectedLocation === 'create'">
+            <h5 class="mt-4 mb-0" >Create new location</h5>
+            <p class="text-muted mt-1">In case you cannot find the location you want to upload data for, please create a new location.</p>
+
+            <label for="country">Country</label>
+            <input type="text" class="form-control mb-3" id="country" v-model="newLocation.country">
+            <label for="country-code">Country Code</label>
+            <input type="text" class="form-control mb-3" id="country-code" v-model="newLocation.country_code">
+            <label for="county">County</label>
+            <input type="text" class="form-control mb-3" id="county" v-model="newLocation.county">
+            <label for="province">Province</label>
+            <input type="text" class="form-control" id="province" v-model="newLocation.province">
+            <button
+              class="btn btn-success mt-3"
+              @click="createLocation">Create Location</button>
+          </div>
+        </div>
+        <div class="card mb-3 mt-5" v-if="readyToEditJsonData">
           <h5>Normalize Data</h5>
           <h6>Expected output structure</h6>
           <div class="result-data-wrapper d-flex justify-content-between align-items-center">
             <div
               class="badge badge-pill badge-secondary"
-              :class="{ 'badge-success': jsonDataFields.includes('occured_on') }">occured_on (date)</div>
-            <div
-              class="badge badge-pill badge-secondary"
-              :class="{ 'badge-success': jsonDataFields.includes('tested') }">tested (integer)</div>
-            <div
-              class="badge badge-pill badge-secondary"
-              :class="{ 'badge-success': jsonDataFields.includes('confirmed') }">confirmed (integer)</div>
-            <div
-              class="badge badge-pill badge-secondary"
-              :class="{ 'badge-success': jsonDataFields.includes('recovered') }">recovered (integer)</div>
-            <div
-              class="badge badge-pill badge-secondary"
-              :class="{ 'badge-success': jsonDataFields.includes('deceased') }">deceased (integer)</div>
-            <div
-              class="badge badge-pill badge-secondary"
-              :class="{ 'badge-success': jsonDataFields.includes('location') }">location</div>
+              v-for="field in requiredFields"
+              :key="field.name"
+              :class="{ 'badge-success': jsonDataFields.includes(field.name) }"
+              @dragstart.stop="draggedField = field.name"
+              draggable>{{ field.name }} ({{ field.type }})</div>
           </div>
-          <h6 class="mt-4 mb-0">Your uploaded data</h6>
+          <h6 class="mt-4 mb-0">Your uploaded data for {{ availableLocations[selectedLocation] }}</h6>
           <p class="text-muted">Only one entry is shown</p>
           <div class="wrapper">
             <button
               @click="addStaticField = true"
               class="btn btn-secondary btn-sm mb-1"><font-awesome-icon icon="plus" /> Add static field</button>
-            <p class="text-muted">This might be helpful for creating a static value for e.g. location.</p>
+            <p class="text-muted">This might be helpful for creating a static value for e.g. date.</p>
             <div
               class="input-group input-group-sm mb-3"
               v-if="addStaticField">
@@ -129,6 +154,9 @@
                 <th
                   v-for="field in jsonDataFields"
                   @click="renameFieldSource = field; renameFieldTarget = field"
+                  @drop.stop="renameField(field, draggedField)"
+                  @dragover.prevent
+                  :droppable="true"
                   :key="field">
                   <div
                     class="field-name d-flex justify-content-start align-items-center"
@@ -158,8 +186,12 @@
             </table>
           </div>
         </div>
-        <div class="upload-button-wrapper mt-3 mb-5" v-if="jsonData.length">
-          <button class="btn btn-success w-100">Add entry to database</button>
+        <div class="upload-button-wrapper mt-3 mb-5" v-if="readyToEditJsonData">
+          <button
+            class="btn w-100"
+            @click="submitEntry"
+            :class="{ 'btn-success': allFieldsMatching, 'btn-secondary': !allFieldsMatching }"
+            :disabled="!allFieldsMatching">Add entry to database</button>
         </div>
         <div class="card" v-if="jsonData.length">
           <button
@@ -181,13 +213,42 @@
 
 import HTMLFromTable from 'html-table-to-json'
 import PapaParse from 'papaparse'
-import { mapKeys, omit, assignIn } from 'lodash'
-import { get } from 'axios'
+import { mapKeys, omit, assignIn, isEqual, sortBy } from 'lodash'
+import { get, post } from 'axios'
 
 export default {
   name: 'App',
   data() {
     return {
+      draggedField: undefined,
+      newLocation: {
+        country_code: '',
+        country: '',
+        county: '',
+        province: ''
+      },
+      requiredFields: [
+        {
+          name: 'occured_on',
+          type: 'date'
+        },
+        {
+          name: 'tested',
+          type: 'integer'
+        },
+        {
+          name: 'confirmed',
+          type: 'integer'
+        },
+        {
+          name: 'recovered',
+          type: 'integer'
+        },
+        {
+          name: 'deceased',
+          type: 'integer'
+        }
+      ],
       newFieldName: '',
       newFieldValue: '',
       showJSON: false,
@@ -199,20 +260,48 @@ export default {
       selectedInput: 'csv',
       csvData: undefined,
       tableData: '',
-      jsonData: []
+      jsonData: [],
+      error: undefined,
+      selectedLocation: undefined,
+      availableLocations: [],
+      showCreateNewLocation: false,
+      successfullySubmitted: false
     }
-  },
-  components: {
   },
   computed: {
     jsonDataFields() {
       return Object.keys(this.jsonData[0]).map((key) => key)
+    },
+    readyToEditJsonData() {
+      return this.jsonData.length && this.selectedLocation && this.selectedLocation !== 'create'
+    },
+    allFieldsMatching() {
+      const requiredFieldsHeader = this.requiredFields.map(({ name }) => name)
+      return isEqual(sortBy(this.jsonDataFields), sortBy(requiredFieldsHeader))
     }
   },
+  mounted() {
+    this.getLocations()
+  },
   methods: {
+    submitEntry() {
+      post('https://api.test.ix-io.net/covid/covid/cases', {
+        cases: this.jsonData,
+        location_id: this.selectedLocation
+      }).then(() => {
+        this.successfullySubmitted = true
+      }).catch((error) => {
+        console.error(error)
+      })
+    },
     importTableFromURL() {
       get(`http://a05b81e417a6b11eaa621060268a248d-1111261182.eu-west-1.elb.amazonaws.com/table?url=${this.tableURL}`).then((response) => {
         this.tableData = response.data.tags[0]
+      })
+    },
+    getLocations() {
+      return get('https://api.test.ix-io.net/covid/covid/locations').then((response) => {
+        this.availableLocations = response.data.locations
       })
     },
     uploadFile(event) {
@@ -231,6 +320,15 @@ export default {
     },
     convertCSV() {
       this.jsonData = PapaParse.parse(this.csvData, { header: true }).data
+    },
+    createLocation() {
+      post('https://api.test.ix-io.net/covid/covid/locations', {
+        location: this.newLocation
+      }).then(() => {
+        this.getLocations().then(() => {
+          this.selectedLocation = (this.availableLocations.find(({ province }) => province === this.newLocation.province) || {}).id
+        })
+      })
     },
     convertHTML() {
       this.jsonData = (HTMLFromTable.parse(this.tableData) || {}).results[0]
