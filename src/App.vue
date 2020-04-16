@@ -1,5 +1,19 @@
 <template>
   <div id="app" class="container">
+    <div
+      class="success-overlay"
+      v-if="successfullySubmitted">
+      <div class="container">
+        <div class="row">
+          <div class="col">
+            <div class="alert alert-success text-center w-50 p-5 mx-auto mt-5">
+              <h4>Thanks for sharing 🎉</h4>
+              <p>Your data was uploaded successfully and will help improving response to the desease!</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="row">
       <div class="col">
         <div class="import-data card mb-3">
@@ -352,6 +366,15 @@ export default {
 </script>
 
 <style>
+.success-overlay {
+  position: fixed;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, .7);
+  z-index: 1000
+}
 #app {
   font-family: Avenir, Helvetica, Arial, sans-serif;
   margin-top: 60px;
@@ -398,5 +421,9 @@ textarea {
 ul {
   list-style-type: none;
   padding: 0
+}
+
+.card {
+  z-index: 100
 }
 </style>
