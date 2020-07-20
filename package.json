@@ -16,7 +16,7 @@
     "core-js": "^3.6.4",
     "html-table-to-json": "^1.0.0",
     "jquery": "^3.5.0",
-    "lodash": "^4.17.15",
+    "lodash": "^4.17.19",
     "papaparse": "^5.2.0",
     "popper.js": "^1.16.1",
     "vue": "^2.6.11"
